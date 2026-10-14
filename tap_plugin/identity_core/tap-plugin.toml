@@ -1,6 +1,6 @@
 manifest_version = "0"
 plugin_version = "0.1.3" # x-release-please-version
-requires_tap = ">=0.1.5"
+requires_tap = ">=0.3.0"
 slug = "identity_core"
 name = "TAP Identity Core"
 description = "Cross-cutting federated-identity vocabulary substrate — the OIDC issuer convergence node + issuer identity primitives. Library plugin: no collector. Owns two generic edges with wildcard sources (TRUSTS_ISSUER, HELD_BY_HUMAN) so any principal can trust an issuer, and any account can resolve to one human, without the substrate depending upward."
