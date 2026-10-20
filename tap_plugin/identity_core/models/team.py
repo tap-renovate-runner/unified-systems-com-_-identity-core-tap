@@ -37,15 +37,15 @@ class Team(BaseModel):
     DEFAULT_DISPLAY: ClassVar[dict[str, Any]] = {
         "tap_viz": {
             "shape": "ellipse",
-            "colors": {"fill": "#FFF8E1", "border": "#F9A825", "label": "#5F4300"},
-            "label": {"valign": "bottom", "halign": "center", "position": "outside"},
+            "label": {"position": "outside", "halign": "center", "valign": "bottom"},
+            "colors": {"label": "#5F4300", "border": "#F9A825", "fill": "#FFF8E1"},
         }
     }
 
     FIELD_CRUD_SCHEMA: ClassVar[dict[str, Any]] = {
+        "description": {"type": "string"},
         "handle": {"type": "string", "minLength": 1},
         "name": {"type": "string"},
-        "description": {"type": "string"},
     }
     FIELD_VALIDATION_SCHEMA: ClassVar[dict[str, Any]] = {
         "handle": {"validation": "jsonschema", "schema": {"type": "string", "minLength": 1}},
@@ -65,4 +65,4 @@ class Team(BaseModel):
         return self.name or self.handle
 
     def __str__(self) -> str:
-        return self.get_name()
+        return str(self.get_name())
