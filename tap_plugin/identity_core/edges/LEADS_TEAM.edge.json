@@ -1,0 +1,16 @@
+{
+  "slug": "LEADS_TEAM__identity_core",
+  "name": "Leads Team",
+  "description": "A human leads a team. The source is a human; the target is a team. Cardinality is not constrained: a human may belong to or lead several teams, a team may have several parents or leaders, and the edge records the situation instead of refusing it. A cycle (team A inside team B inside team A) is not refused either; finding one is a read, not a write rule. Leading does not imply belonging: a leader with no BELONGS_TO_TEAM edge to the team is allowed, and a report may flag one.",
+  "sources": [
+    "identity_core__human"
+  ],
+  "targets": [
+    "identity_core__team"
+  ],
+  "property_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
