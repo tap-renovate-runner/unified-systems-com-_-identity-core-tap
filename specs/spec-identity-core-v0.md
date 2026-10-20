@@ -5,7 +5,7 @@
 - **Slug:** `identity_core`
 - **Kind:** substrate library plugin — vocabulary + mechanism, **no collector in v0**.
 - **Public surface:**
-  - **Models** (see `req-identity-core-model`, `req-identity-core-organization`, `req-identity-core-human`): `oidc_issuer`, `organization`, `human`.
+  - **Models** (see `req-identity-core-model`, `req-identity-core-organization`, `req-identity-core-human`, `req-identity-core-team`): `oidc_issuer`, `organization`, `human`, `team`.
   - **Helpers** (see `req-identity-core-issuer-id`, `req-identity-core-canonical-url`,
     `req-identity-core-envelope`):
     - `identity_core.issuer.canonical_issuer_url(raw: str) -> str` — the one canonical
@@ -25,7 +25,8 @@
     creates the edge. The other issuer-touching edges (`ENABLED_ON`, `IDENTITY_VOUCHED_BY`)
     are domain-specific and stay with the plugin that asserts them
     (`req-identity-core-edge-retargets`).
-  - **Default dimensions** (see `req-identity-core-dimensions`): `identity.protocol: oidc`.
+  - **Team edges** (added 2026-10-20, see `req-identity-core-team-edges`): `BELONGS_TO_TEAM__identity_core` (a human or a team belongs to a team) and `LEADS_TEAM__identity_core` (a human leads a team).
+  - **Default dimensions** (see `req-identity-core-dimensions`): `identity.protocol: oidc`. The ownership stamp `team.responsible` (`req-identity-core-responsible`) is a convention for other plugins' entities, not a default.
 
 ## Philosophy
 
@@ -108,6 +109,9 @@ a one-hop graph traversal rather than code-reading.
 | req-identity-core-model | [OIDC Issuer Model](#oidc-issuer-model) | Implemented | `identity_core__oidc_issuer`; keyed on canonical issuer host; minimal fields. `get_name()` is the `issuer_url` (no well-known catalog; `display_name` deferred — no backing field). |
 | req-identity-core-organization | [Organization Model](#organization-model) | Implemented | `identity_core__organization`: a party that holds identities; role-free (customer/vendor/operator is a relationship asserted elsewhere); keyed on `name` in v0. |
 | req-identity-core-human | [Human Model](#human-model) | Implemented | `identity_core__human`: one real person; every system's account for them points at it with the wildcard-source `HELD_BY_HUMAN__identity_core`; keyed on an operator-assigned `handle`. |
+| req-identity-core-team | [Team Model](#team-model) | Implemented | `identity_core__team`: a group of people, keyed on a stable `handle`; role-free; no free-form blob. |
+| req-identity-core-team-edges | [Team Edges](#team-edges) | Implemented | `BELONGS_TO_TEAM` (human or team to team, which is how teams nest) and `LEADS_TEAM` (human to team); no cardinality constrained. |
+| req-identity-core-responsible | [Responsibility Stamp](#responsibility-stamp) | Implemented | `team.responsible` on any entity, whose value is a team's entity id; one owner per entity; open value set. |
 | req-identity-core-canonical-url | [Canonical Issuer URL](#canonical-issuer-url) | Implemented | One normalization spanning scheme'd/scheme-less forms; the convergence guarantee. |
 | req-identity-core-issuer-id | [Deterministic Issuer Id](#deterministic-issuer-id) | Implemented | `oidc_issuer_id(raw)` over the canonical form; the sole id path. Namespace is the per-plugin `IDENTITY_CORE_NAMESPACE` (no repo-wide `TAP_NAMESPACE` constant exists; per-plugin is the convention). |
 | req-identity-core-envelope | [Node Envelope Helper](#node-envelope-helper) | Implemented | `oidc_issuer_node_envelope(raw, *, dimensions=None)` returns the `{entity, node}` GRIFT fragment consumers merge. `display_name` param dropped — the spine projects `get_name()`=issuer_url, so a divergent name would be overwritten (honest v0 deviation). |
@@ -133,6 +137,10 @@ is `pass`; no `tap_cares` registration) and emits no edges itself. Consumers imp
 only from `identity_core.*`. The plugin is install-only: it stands up the vocabulary
 and the minting mechanism that github_core, aws_core, sigstore_core, and samsite call
 into (or point their edges at).
+
+Teams (added 2026-10-20) add a fourth model, `team`, and two edges, `BELONGS_TO_TEAM` and
+`LEADS_TEAM`, with the same posture: vocabulary only, no collector, nothing minted by the plugin
+(`req-identity-core-team`, `req-identity-core-team-edges`).
 
 ### OIDC Issuer Model
 ----
@@ -243,6 +251,74 @@ identity-anchor palette.
 | req-identity-core-human-3 | No free-form blob | Implemented | A write carrying `configuration` is refused. |
 | req-identity-core-human-4 | Source unrestricted | Implemented | `HELD_BY_HUMAN__identity_core` accepts a source of any type (a non-account included) and a `matched_on` property; the spec and edge description say so. |
 | req-identity-core-human-5 | Shared accounts are recorded | Implemented | One source may hold `HELD_BY_HUMAN__identity_core` edges to two humans, and both are queryable. |
+
+### Team Model
+----
+RID: `req-identity-core-team`
+
+Status: `Implemented`
+
+`ENTITY_TYPE = "identity_core__team"`, `ENTITY_NAME = "Team"`. A group of people who act together and answer for something together: a devops team, an engineering team, a company that contains them. Added 2026-10-20 (ruled by George): the vulnerability story needs a last link from a system to the people who manage it, and no node held the group. It is deliberately not an `organization`: an organization is a party that holds identities (a company or agency), and the demo has to show a team and a company side by side without a reader asking which is which. A team is the unit people join and leave, and it nests (`req-identity-core-team-edges`).
+
+Role-free, like `organization`. What a team is responsible for is asserted elsewhere, by the ownership stamp (`req-identity-core-responsible`); a team type that said "devops" or "engineering" would bake one view in.
+
+Fields: `handle` (required; the identity), `name` (display name; blank = not observed), `description` (what the team is for, in a sentence; blank = not observed). `NATURAL_KEY = ("handle",)`, declared and not unique (`req-grid-entity-natural-key-3`): an identifier the operator assigns and keeps stable, such as `devops` or `git-serious`. A name changes; a handle does not. The type has no free-form `configuration` field, for the reason `human` has none: there is no source payload to preserve, and a team record is where unchosen detail would collect. No default dimension. Icon `team`, the identity-anchor palette.
+
+#### Acceptance Criteria
+
+| ACID | Title | Status | Description |
+| --- | --- | :---: | --- |
+| req-identity-core-team-1 | Handle only | Implemented | A `create_node` write with only `handle` succeeds; `name` and `description` stay blank, and the display name falls back to the handle. |
+| req-identity-core-team-2 | Handle required | Implemented | A write without `handle` is refused. |
+| req-identity-core-team-3 | No free-form blob | Implemented | A write carrying `configuration` is refused. |
+| req-identity-core-team-4 | Role-free | Implemented | The type carries no default dimension and no field naming a kind of team or a responsibility. |
+| req-identity-core-team-5 | Registered | Implemented | `identity_core__team` is declared in the manifest `[models]` table and `manage.py plugins` counts it. |
+
+### Team Edges
+----
+RID: `req-identity-core-team-edges`
+
+Status: `Implemented`
+
+Two edges, both named as an action on the team they point at (`req-tap-plugin-edge-naming`; `aws_core` has `BELONGS_TO_ACCOUNT` as precedent).
+
+- **`BELONGS_TO_TEAM__identity_core`**: source `identity_core__human` or `identity_core__team`, target `identity_core__team`; no properties. A human belongs to a team as a member. A team belongs to a team as a child of a parent. This one edge is both membership and hierarchy, so "everyone in the company" is a walk up from the people and "everyone under engineering" a walk down.
+- **`LEADS_TEAM__identity_core`**: source `identity_core__human`, target `identity_core__team`; no properties.
+
+Cardinality is not constrained, because the plugin's edge definitions carry none and a graph that records the situation is more useful than one that refuses it (as `HELD_BY_HUMAN` does for shared accounts). A person may belong to several teams, a team may have several parents, and a team may be led by two people. Leading does not imply belonging: a leader with no `BELONGS_TO_TEAM` edge is allowed, and a report may flag one. A cycle (team A inside team B inside team A) is not refused either; finding one is a read, not a write rule.
+
+#### Acceptance Criteria
+
+| ACID | Title | Status | Description |
+| --- | --- | :---: | --- |
+| req-identity-core-team-edges-1 | Membership And Nesting | Implemented | `BELONGS_TO_TEAM__identity_core` accepts a `human` source and a `team` source, each to a `team` target, and a `human` can belong to a team that itself belongs to another team. |
+| req-identity-core-team-edges-2 | Nothing Else Is Declared | Implemented | `BELONGS_TO_TEAM__identity_core` and `LEADS_TEAM__identity_core` declare `team` as the only target, and `LEADS_TEAM__identity_core` declares `human` as the only source. This is a declaration, not a write-time refusal: the grid's permission union admits an edge when either end's node type has no `OUTBOUND_EDGES`/`INBOUND_EDGES` of its own, and `human` and `organization` have none, so the declared constraint is what is asserted. |
+| req-identity-core-team-edges-3 | Several Of Each Are Recorded | Implemented | One human with `BELONGS_TO_TEAM` edges to two teams, one team with two parents, and one team with two `LEADS_TEAM` edges each succeed and are queryable. |
+| req-identity-core-team-edges-4 | Leader Need Not Be A Member | Implemented | A `LEADS_TEAM` edge from a human with no `BELONGS_TO_TEAM` edge to that team succeeds. |
+| req-identity-core-team-edges-5 | Names Conform | Implemented | `validate_plugin` accepts both slugs under `req-tap-plugin-edge-naming`, and both edge descriptions state the cardinality and cycle rules above. |
+| req-identity-core-team-edges-6 | Cycles And Second Leaders Reported | Backlog | A Search that lists teams on a cycle and teams with more than one leader. |
+
+### Responsibility Stamp
+----
+RID: `req-identity-core-responsible`
+
+Status: `Implemented`
+
+An entity is stamped with the team answerable for it by the dimension key `team.responsible`, whose value is the **entity id of an `identity_core__team`**, as a lowercase hyphenated UUID string. The stamp is a dimension and not an edge because every entity on the grid would otherwise draw an edge to a handful of team nodes: hubs with thousands of inbound edges, and an edge type with a wildcard source for every kind of thing a team can own. A stamp is a string on the entity, indexed and queryable like any dimension (`req-grid-dimension-em`).
+
+`team.responsible` is not in the `identity.*` namespace (`req-identity-core-dimensions`): the key is stamped on entities that have nothing to do with identity, and `identity.*` scopes identity vocabulary. It is a namespace of its own, `team.*`, whose first key this is; a later key such as `team.accountable` extends it.
+
+One owner per entity: a dimension holds one value per key. The value set is open (a deployment has as many teams as it has), so the key's dictionary has one node, `team.responsible`, and no value nodes (the reasoning in `req-grid-dimension-reference`: a node per value suits closed sets only). The dictionary node is seeded by the instance that uses the key, not by this plugin. Because a team id is a plain string, a stamp naming a team that is deleted points at nothing and the grid does not notice; finding stamps with no live team is a read (`req-identity-core-responsible-4`).
+
+#### Acceptance Criteria
+
+| ACID | Title | Status | Description |
+| --- | --- | :---: | --- |
+| req-identity-core-responsible-1 | Value Is A Team Id | Implemented | The documented value of `team.responsible` is the entity id of an `identity_core__team`, lowercase and hyphenated, and the spec says so in one sentence beside the key. |
+| req-identity-core-responsible-2 | One Owner | Implemented | An entity carries at most one `team.responsible` value; a second owner is a different key, not a second value. |
+| req-identity-core-responsible-3 | Own Namespace | Implemented | The key sits in `team.*`, not `identity.*`, and the plugin sets it on no node by default. |
+| req-identity-core-responsible-4 | Dangling Stamps Reported | Backlog | A Search that lists `team.responsible` values matching no live team. |
+| req-identity-core-responsible-5 | RACI | Backlog | Accountable, consulted and informed (`team.accountable` and others) are not defined here; consulted and informed are many-valued and would need keyed dimensions or edges. |
 
 ### Canonical Issuer URL
 ----
@@ -438,6 +514,7 @@ Explicitly out of scope for v0:
 - **Issuer-metadata fetch / discovery.** No network call to `/.well-known/openid-configuration`; `configuration` is populated only from what a collector already observed.
 - **Issuer liveness / reachability.** The node makes no claim the issuer is reachable.
 - **Trust policy.** No trust fields, defaults, or edges (`req-identity-core-existence-not-trust`).
+- **Team policy** (2026-10-20). No team types or roles beyond lead and member, no enforcement that a team hierarchy is acyclic or a team has one leader, no RACI beyond `team.responsible`, and no personal data on a person or team record.
 - **Well-known name catalog.** The github_core original hardcoded a
   `_WELL_KNOWN_NAMES` map (`token.actions.githubusercontent.com` → "GitHub Actions
   OIDC"). It is **dropped**: it is the same special-case-the-known-issuer pattern at the

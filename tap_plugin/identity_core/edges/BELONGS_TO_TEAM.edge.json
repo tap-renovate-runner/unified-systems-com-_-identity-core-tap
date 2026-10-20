@@ -1,0 +1,17 @@
+{
+  "slug": "BELONGS_TO_TEAM__identity_core",
+  "name": "Belongs To Team",
+  "description": "A human is a member of a team, or a team is a child of a parent team. One edge is both membership and hierarchy, so 'everyone in the company' is a walk up from the people and 'everyone under engineering' a walk down. The source is a human or a team; the target is always a team. Cardinality is not constrained: a human may belong to or lead several teams, a team may have several parents or leaders, and the edge records the situation instead of refusing it. A cycle (team A inside team B inside team A) is not refused either; finding one is a read, not a write rule. Belonging is independent of leading: a leader need not belong to the team they lead.",
+  "sources": [
+    "identity_core__human",
+    "identity_core__team"
+  ],
+  "targets": [
+    "identity_core__team"
+  ],
+  "property_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
