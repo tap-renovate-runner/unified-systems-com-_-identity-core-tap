@@ -319,7 +319,7 @@ One owner per entity: a dimension holds one value per key. The value set is open
 | req-identity-core-responsible-3 | Own Namespace | Implemented | The key sits in `team.*`, not `identity.*`, and the plugin sets it on no node by default. |
 | req-identity-core-responsible-4 | Dangling Stamps Reported | Backlog | A Search that lists `team.responsible` values matching no live team. |
 | req-identity-core-responsible-5 | RACI | Backlog | Accountable, consulted and informed (`team.accountable` and others) are not defined here; consulted and informed are many-valued and would need keyed dimensions or edges. |
-| req-identity-core-responsible-6 | Team To Dimension Edge | Implemented | `ANSWERS_FOR_DIMENSION__identity_core` runs from an `identity_core__team` to a `dimension` node (for example `team.responsible`), carries no properties, and its description says the target is a dimension node. It records that a team answers under a key; the stamp itself stays a dimension on the entity. Cardinality is not constrained. Approved by George 2026-10-21. |
+| req-identity-core-responsible-6 | Team To Dimension Edge | Implemented | `ANSWERS_FOR_DIMENSION__identity_core` runs from an `identity_core__team` to a `dimension` node (for example `team.responsible`), carries no properties, and its description says the target is a dimension node. It records that a team answers under a key; the stamp itself stays a dimension on the entity. Cardinality is not constrained. |
 
 ### Canonical Issuer URL
 ----
