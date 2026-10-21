@@ -25,7 +25,7 @@
     creates the edge. The other issuer-touching edges (`ENABLED_ON`, `IDENTITY_VOUCHED_BY`)
     are domain-specific and stay with the plugin that asserts them
     (`req-identity-core-edge-retargets`).
-  - **Team edges** (added 2026-10-20, see `req-identity-core-team-edges`): `BELONGS_TO_TEAM__identity_core` (a human or a team belongs to a team) and `LEADS_TEAM__identity_core` (a human leads a team).
+  - **Team edges** (added 2026-10-20, see `req-identity-core-team-edges`): `BELONGS_TO_TEAM__identity_core` (a human or a team belongs to a team) and `LEADS_TEAM__identity_core` (a human leads a team). `ANSWERS_FOR_DIMENSION__identity_core` (a team to a dimension node, added 2026-10-21, `req-identity-core-responsible-6`) records which dimension key a team's id is stamped under.
   - **Default dimensions** (see `req-identity-core-dimensions`): `identity.protocol: oidc`. The ownership stamp `team.responsible` (`req-identity-core-responsible`) is a convention for other plugins' entities, not a default.
 
 ## Philosophy
@@ -319,6 +319,7 @@ One owner per entity: a dimension holds one value per key. The value set is open
 | req-identity-core-responsible-3 | Own Namespace | Implemented | The key sits in `team.*`, not `identity.*`, and the plugin sets it on no node by default. |
 | req-identity-core-responsible-4 | Dangling Stamps Reported | Backlog | A Search that lists `team.responsible` values matching no live team. |
 | req-identity-core-responsible-5 | RACI | Backlog | Accountable, consulted and informed (`team.accountable` and others) are not defined here; consulted and informed are many-valued and would need keyed dimensions or edges. |
+| req-identity-core-responsible-6 | Team To Dimension Edge | Implemented | `ANSWERS_FOR_DIMENSION__identity_core` runs from an `identity_core__team` to a `dimension` node (for example `team.responsible`), carries no properties, and its description says the target is a dimension node. It records that a team answers under a key; the stamp itself stays a dimension on the entity. Cardinality is not constrained. Approved by George 2026-10-21. |
 
 ### Canonical Issuer URL
 ----

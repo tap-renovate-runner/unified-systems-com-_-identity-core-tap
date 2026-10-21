@@ -1,0 +1,16 @@
+{
+  "slug": "ANSWERS_FOR_DIMENSION__identity_core",
+  "name": "Answers For Dimension",
+  "description": "A team answers for the entities stamped with its entity id under this dimension. The source is a team; the target is a dimension node (for example team.responsible), the dictionary entry for a key whose values are team entity ids. The stamp itself stays a dimension on the entity, never an edge (see the Responsibility Stamp), because dimension values are team entity ids and not nodes; this edge records the one fact the dimension node cannot carry, which team's ids appear under the key, so a page can walk from a team to the key it answers for and a reader can find the key from the team. Cardinality is not constrained: a team may answer for several dimensions, and a dimension may be answered for by several teams. The edge records that a team answers under a key; it does not list the entities, which are found by searching the dimension for the team's id.",
+  "sources": [
+    "identity_core__team"
+  ],
+  "targets": [
+    "dimension"
+  ],
+  "property_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

@@ -16,6 +16,7 @@ TYPE = "identity_core__team"
 HUMAN = "identity_core__human"
 BELONGS = "BELONGS_TO_TEAM__identity_core"
 LEADS = "LEADS_TEAM__identity_core"
+ANSWERS = "ANSWERS_FOR_DIMENSION__identity_core"
 PLUGIN = Path(__file__).resolve().parent.parent
 SPEC = PLUGIN.parents[1] / "specs" / "spec-identity-core-v0.md"
 
@@ -138,6 +139,27 @@ class TestTeamEdges:
         assert set(_edge_json("BELONGS_TO_TEAM")["sources"]) == {HUMAN, TYPE}
         assert _edge_json("LEADS_TEAM")["sources"] == [HUMAN]
         assert _edge_json("BELONGS_TO_TEAM")["property_schema"]["properties"] == {}
+
+
+@pytest.mark.django_db
+class TestAnswersForDimension:
+    @pytest.mark.spec("req-identity-core-responsible-6")
+    def test_team_to_dimension_edge(self) -> None:
+        doc = _edge_json("ANSWERS_FOR_DIMENSION")
+        assert doc["slug"] == ANSWERS
+        assert f'{ANSWERS} = "edges/ANSWERS_FOR_DIMENSION.edge.json"' in (PLUGIN / "tap-plugin.toml").read_text()
+        assert doc["sources"] == [TYPE]
+        assert doc["targets"] == ["dimension"]
+        assert doc["property_schema"]["properties"] == {}
+        assert doc["property_schema"]["additionalProperties"] is False
+        assert "dimension node" in doc["description"]
+        assert "Cardinality is not constrained" in doc["description"]
+
+        team, other = _team("devops"), _team("infra")
+        key = _node("dimension", {"name": "team.responsible", "description": "The team answerable for an entity."})
+        assert _edge(ANSWERS, team, key).success
+        assert _edge(ANSWERS, other, key).success
+        assert Edge.objects.filter(to_entity_id=key.entity_id, edge_type=ANSWERS).count() == 2
 
 
 class TestResponsibilityStamp:
