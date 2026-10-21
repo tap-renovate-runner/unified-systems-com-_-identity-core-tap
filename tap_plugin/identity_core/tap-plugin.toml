@@ -12,6 +12,7 @@ identity_core__organization = "tap_plugin.identity_core.models.organization.Orga
 identity_core__team = "tap_plugin.identity_core.models.team.Team"
 
 [edges]
+ANSWERS_FOR_DIMENSION__identity_core = "edges/ANSWERS_FOR_DIMENSION.edge.json"
 BELONGS_TO_TEAM__identity_core = "edges/BELONGS_TO_TEAM.edge.json"
 HELD_BY_HUMAN__identity_core = "edges/HELD_BY_HUMAN.edge.json"
 LEADS_TEAM__identity_core = "edges/LEADS_TEAM.edge.json"
